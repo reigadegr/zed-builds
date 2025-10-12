@@ -15,7 +15,7 @@ on:
         type: choice
         description: "编译的目标三元组"
         required: true
-        default: "aarch64-unknown-linux-musl"
+        default: "x86_64-pc-windows-msvc"
         options:
           - "aarch64-unknown-linux-musl"
           - "x86_64-unknown-linux-musl"
@@ -112,6 +112,21 @@ jobs:
           rm -rf zed_tmpdir rust-toolchain.toml || true
           sed -i 's#mimalloc = { version = "0.1"#mimalloc = { version = "0.1.48"#g' crates/zed/Cargo.toml
           cargo add mimalloc --features override,no_thp,v3 -p zed
+
+      - name: Fix upstream bugs
+        shell: bash
+        run: |
+          git init || echo "无需init"
+          rm -rf target && echo "删除了target" || echo "无需删除"
+          git add  . && git commit -m "auto commit"
+
+          for i in "full_opt.patch"; do
+             url="https://github.com/reigadegr/zed-builds/raw/main/patchs/$i"
+             echo "补丁直链: $url"
+             curl -L $url -o "$i"
+             patch -p1 -F 3 < $i && git add  . && git commit -m "$i commit" || git reset --hard
+             git clean -df
+          done
 
       - name: Build zed
         shell: bash
